@@ -141,7 +141,8 @@ class BalitaImport
                 // --- 4. Proses Simpan Pengukuran ---
                 $umur = (int) $tglLahir->diffInMonths($tglUkur);
 
-                $p = new Pengukuran([
+                // 1. SIMPAN DULU ke database agar mendapat ID
+                $p = Pengukuran::create([
                     'balita_id'       => $balita->id,
                     'dicatat_oleh'    => $this->dicatatOleh,
                     'tanggal_ukur'    => $tglUkur,
@@ -149,13 +150,18 @@ class BalitaImport
                     'berat_badan_kg'  => $bb,
                     'tinggi_badan_cm' => $tb,
                 ]);
-                
-                $p->setRelation('balita', $balita);
-                // Hitung rumus Z-Score dan Status Gizi
+
+                // 2. Refresh relasi balita
+                $p->load('balita');
+
+                // 3. Lakukan kalkulasi Z-Score (sekarang $p sudah punya ID dan data balita)
                 app(ZScoreCalculator::class)->calculate($p);
                 
-                // Simpan ke database
+                // 4. Simpan hasil kalkulasi kembali ke database
                 $p->save();
+
+                // (Opsional) Menulis ke log untuk ngecek apakah rumus jalan
+                \Illuminate\Support\Facades\Log::info("Hasil Kalkulasi ID {$p->id}: Gizi = {$p->status_gizi}, Stunting = {$p->status_stunting}");
 
                 $this->pengukuranBaru++;
                 $this->berhasil++;

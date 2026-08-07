@@ -131,10 +131,12 @@
             <tr v-for="(b, index) in balita.data" :key="b.id"
                 @click="$inertia.visit(route('balita.show', b.id))"
                 class="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors">
+              
               <!-- No -->
               <td class="px-3 py-2.5 text-center text-xs text-gray-400">
                 {{ (balita.current_page - 1) * balita.per_page + index + 1 }}
               </td>
+              
               <!-- Nama -->
               <td class="px-3 py-2.5">
                 <div class="flex items-center gap-2">
@@ -143,22 +145,27 @@
                 </div>
                 <p class="text-xs text-gray-400 ml-6">{{ b.nama_ibu }}</p>
               </td>
+              
               <!-- NIK -->
               <td class="px-3 py-2.5 text-xs text-gray-500 font-mono">
                 {{ b.nik_balita ?? '-' }}
               </td>
+              
               <!-- Usia -->
               <td class="px-3 py-2.5 text-center text-xs text-gray-600">
                 {{ b.umur_bulan != null ? b.umur_bulan + ' bln' : b.umur_lengkap }}
               </td>
+              
               <!-- BB -->
               <td class="px-3 py-2.5 text-center font-semibold text-blue-700">
                 {{ b.bb_terakhir ?? '-' }}
               </td>
+              
               <!-- TB -->
               <td class="px-3 py-2.5 text-center font-semibold text-green-700">
                 {{ b.tb_terakhir ?? '-' }}
               </td>
+              
               <!-- Status Gizi -->
               <td class="px-3 py-2.5 text-center">
                 <span v-if="b.status_gizi"
@@ -167,12 +174,16 @@
                 </span>
                 <span v-else class="text-gray-300 text-xs">—</span>
               </td>
-              <!-- Status Stunting -->
+              
+              <!-- Status Stunting (Diperbaiki: Ditambah v-if agar tidak muncul badge '—') -->
               <td class="px-3 py-2.5 text-center">
-                <span :class="['text-xs px-2 py-0.5 rounded-full font-medium', stuntingClass(b.status_stunting)]">
+                <span v-if="b.status_stunting" 
+                      :class="['text-xs px-2 py-0.5 rounded-full font-medium', stuntingClass(b.status_stunting)]">
                   {{ stuntingLabel(b.status_stunting) }}
                 </span>
+                <span v-else class="text-gray-300 text-xs">—</span>
               </td>
+              
               <!-- Status Wasting -->
               <td class="px-3 py-2.5 text-center">
                 <span v-if="b.status_wasting"
@@ -181,6 +192,7 @@
                 </span>
                 <span v-else class="text-gray-300 text-xs">—</span>
               </td>
+              
               <!-- IMT/U -->
               <td class="px-3 py-2.5 text-center">
                 <span v-if="b.status_imt_u"
@@ -189,20 +201,26 @@
                 </span>
                 <span v-else class="text-gray-300 text-xs">—</span>
               </td>
+              
               <!-- Posyandu -->
               <td class="px-3 py-2.5 text-xs text-gray-600 max-w-[120px] truncate">
                 {{ b.posyandu_nama }}
               </td>
+              
               <!-- Tgl Ukur -->
               <td class="px-3 py-2.5 text-center text-xs text-gray-500">
                 {{ b.tanggal_ukur ?? '—' }}
               </td>
-              <!-- EWS -->
+              
+              <!-- EWS (Diperbaiki: Ditambah v-if agar rapi) -->
               <td class="px-3 py-2.5 text-center">
-                <span :class="['text-xs px-2 py-0.5 rounded-full font-semibold', ewsBadge(b.flag_ews)]">
+                <span v-if="b.flag_ews" 
+                      :class="['text-xs px-2 py-0.5 rounded-full font-semibold', ewsBadge(b.flag_ews)]">
                   {{ b.flag_ews }}
                 </span>
+                <span v-else class="text-gray-300 text-xs">—</span>
               </td>
+              
             </tr>
           </tbody>
         </table>
@@ -228,8 +246,8 @@ const props = defineProps({ balita: Object, filters: Object, posyandu: Array })
 const toArray = v => !v ? [] : (Array.isArray(v) ? v : [v])
 
 const search          = ref(props.filters?.search ?? '')
-const currentSort = ref(props.filters?.sort ?? 'nama')
-const currentDir  = ref(props.filters?.dir  ?? 'asc')
+const currentSort     = ref(props.filters?.sort ?? 'nama')
+const currentDir      = ref(props.filters?.dir  ?? 'asc')
 const activePosyandu  = ref(props.filters?.posyandu_id ?? '')
 const activeEws       = ref(toArray(props.filters?.flag_ews))
 const activeGizi      = ref(toArray(props.filters?.status_gizi))
@@ -385,6 +403,7 @@ function imtLabel(s) {
     OBESITAS:       'Obesitas',
   }[s] ?? '—'
 }
+
 // Komponen ikon sort
 const SortIcon = {
   props: ['col'],

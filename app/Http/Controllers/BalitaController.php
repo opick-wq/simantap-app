@@ -26,13 +26,15 @@ class BalitaController extends Controller
             $filterIds = [(int) $request->posyandu_id];
         }
 
-        $query = Balita::with(['posyandu', 'pengukuran' => fn($q) => $q->orderBy('tanggal_ukur', 'desc')->limit(1)])
+        // PERBAIKAN: limit(1) dibuang agar tidak terjadi bug eager loading N+1 limitation
+        $query = Balita::with(['posyandu', 'pengukuran' => fn($q) => $q->orderBy('tanggal_ukur', 'desc')])
                        ->whereIn('posyandu_id', $filterIds)
                        ->where('aktif', true);
 
         if ($request->filled('search')) {
             $query->search($request->search);
         }
+        
         // Helper: ambil ID pengukuran terakhir per balita
         $latestPengukuranIds = \App\Models\Pengukuran::selectRaw('MAX(id) as id')
             ->groupBy('balita_id')
@@ -45,6 +47,7 @@ class BalitaController extends Controller
                 ->pluck('balita_id');
             $query->whereIn('id', $balitaIds);
         }
+        
         if ($request->filled('flag_ews')) {
             $vals = (array) $request->input('flag_ews');
             $balitaIds = \App\Models\Pengukuran::whereIn('id', $latestPengukuranIds)
@@ -52,18 +55,19 @@ class BalitaController extends Controller
                 ->pluck('balita_id');
             $query->whereIn('id', $balitaIds);
         }
+        
         if ($request->boolean('belum_diukur')) {
             $sudahDiukur = \App\Models\Pengukuran::whereMonth('tanggal_ukur', now()->month)
                 ->whereYear('tanggal_ukur', now()->year)
                 ->pluck('balita_id');
             $query->whereNotIn('id', $sudahDiukur);
         }
+        
         if ($request->boolean('double_burden')) {
             $query->whereHas('pengukuran', fn($q) => $q
                 ->whereIn('status_wasting', ['SANGAT_KURUS', 'KURUS'])
                 ->whereIn('status_stunting', ['PENDEK', 'SANGAT_PENDEK'])
-                ->orderBy('tanggal_ukur', 'desc')
-                ->limit(1));
+                ->orderBy('tanggal_ukur', 'desc'));
         }
 
         if ($request->filled('status_wasting')) {
@@ -76,6 +80,7 @@ class BalitaController extends Controller
                 ->pluck('balita_id');
             $query->whereIn('id', $balitaIds);
         }
+        
         if ($request->filled('status_stunting')) {
             $vals = (array) $request->input('status_stunting');
             if (in_array('STUNTING', $vals)) {
@@ -110,6 +115,7 @@ class BalitaController extends Controller
         $sortCol = $request->input('sort', 'nama');
         $sortDir = $request->input('dir', 'asc') === 'desc' ? 'desc' : 'asc';
         $sortableOnBalita = ['nama', 'tanggal_lahir'];
+        
         if (in_array($sortCol, $sortableOnBalita)) {
             $query->orderBy($sortCol, $sortDir);
         } else {
@@ -143,11 +149,13 @@ class BalitaController extends Controller
                             'umur_bulan'     => $b->pengukuran->first()?->umur_bulan,
                             'nama_ibu'       => $b->nama_ibu,
                             'posyandu_nama'  => $b->posyandu->nama,
+                            
+                            // Karena di Vue pakai v-if="b.status_gizi", kita cukup mengirimkan raw value-nya.
                             'status_gizi'    => $b->pengukuran->first()?->status_gizi,
                             'status_stunting'=> $b->pengukuran->first()?->status_stunting,
-                            'status_wasting'  => $b->pengukuran->first()?->status_wasting,
+                            'status_wasting' => $b->pengukuran->first()?->status_wasting,
                             'status_imt_u'   => $b->pengukuran->first()?->status_imt_u,
-                            'flag_ews'       => $b->pengukuran->first()?->flag_ews ?? 'HIJAU',
+                            'flag_ews'       => $b->pengukuran->first()?->flag_ews,
                             'bb_terakhir'    => $b->pengukuran->first()?->berat_badan_kg,
                             'tb_terakhir'    => $b->pengukuran->first()?->tinggi_badan_cm,
                             'tanggal_ukur'   => $b->pengukuran->first()?->tanggal_ukur?->format('d/m/Y'),
@@ -188,7 +196,6 @@ class BalitaController extends Controller
                 if (!in_array((int) $value, $accessibleIds)) $fail('Posyandu tidak dalam wewenang Anda.');
             }],
             'nik_balita'           => ['required', 'string', 'digits:16', function ($attr, $value, $fail) use ($request) {
-                // Cek duplikat NIK dalam kabupaten/kota yang sama
                 $posyandu = \App\Models\Posyandu::with('wilayah')->find($request->posyandu_id);
                 if (!$posyandu?->wilayah) return;
                 $kabupaten = $posyandu->wilayah->kabupaten;
@@ -230,7 +237,6 @@ class BalitaController extends Controller
                                  'tanggal_ukur' => $p->tanggal_ukur->format('d/m/Y'),
                              ]));
 
-        // Data kurva WHO untuk grafik
         $gender    = $balita->jenis_kelamin;
         $curveBbU   = WhoZscoreReference::getCurveData('BB_U', $gender);
         $curveTbU   = WhoZscoreReference::getCurveData('TB_U', $gender);
