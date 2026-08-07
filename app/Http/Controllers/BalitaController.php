@@ -235,6 +235,7 @@ class BalitaController extends Controller
                              ->get()
                              ->map(fn($p) => array_merge($p->toArray(), [
                                  'tanggal_ukur' => $p->tanggal_ukur->format('d/m/Y'),
+                                 'umur_bulan'   => (int) $p->umur_bulan,
                              ]));
 
         $gender    = $balita->jenis_kelamin;
