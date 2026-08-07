@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
 
 class Pengukuran extends Model
 {
@@ -36,6 +37,44 @@ class Pengukuran extends Model
         'is_validated'   => 'boolean',
         'validated_at'   => 'datetime',
     ];
+
+    // ── Booted Method (Otomatisasi Kalkulasi) ─────────────────
+    protected static function booted()
+    {
+        static::saving(function ($pengukuran) {
+            // Pastikan ada referensi balita dan tanggal ukur
+            if ($pengukuran->balita_id && $pengukuran->tanggal_ukur) {
+                $balita = Balita::find($pengukuran->balita_id);
+                
+                if ($balita && $balita->tanggal_lahir) {
+                    $tglLahir = Carbon::parse($balita->tanggal_lahir);
+                    $tglUkur = Carbon::parse($pengukuran->tanggal_ukur);
+                    
+                    // 1. Hitung Umur Bulan (Selisih bulan lahir dan ukur)
+                    $umurBulan = $tglLahir->diffInMonths($tglUkur);
+                    $pengukuran->umur_bulan = $umurBulan;
+                    
+                    // 2. Hitung Umur Adjusted jika Prematur (Koreksi)
+                    // Standar aterm adalah 40 minggu (1 bulan ~ 4 minggu)
+                    if ($balita->prematur === 'Y' && $balita->usia_gestasi) {
+                        $koreksiMinggu = 40 - (int) $balita->usia_gestasi;
+                        $koreksiBulan = $koreksiMinggu / 4;
+                        // Pastikan umur tidak minus
+                        $pengukuran->umur_bulan_adjusted = max(0, $umurBulan - $koreksiBulan);
+                    } else {
+                        $pengukuran->umur_bulan_adjusted = $umurBulan;
+                    }
+
+                    // 3. (Opsional) Panggil Service Z-Score Anda di Sini
+                    // Jika Anda punya service untuk menghitung stunting/wasting, panggil di sini
+                    // Contoh:
+                    // $hasilGizi = AntropometriService::hitung($pengukuran->umur_bulan, $pengukuran->berat_badan_kg, $pengukuran->tinggi_badan_cm, $balita->jenis_kelamin);
+                    // $pengukuran->status_stunting = $hasilGizi['status_stunting'];
+                    // $pengukuran->z_score_bb_u = $hasilGizi['z_score_bb_u'];
+                }
+            }
+        });
+    }
 
     // ── Relasi ────────────────────────────────────────────────
 

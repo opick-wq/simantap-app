@@ -8,12 +8,14 @@ use App\Services\ZScoreCalculator;
 use Carbon\Carbon;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
+use DateTimeInterface;
+use Exception;
 
 class BalitaImport
 {
-    public array $errors       = [];
-    public int   $berhasil     = 0;
-    public int   $balitaBaru   = 0;
+    public array $errors         = [];
+    public int   $berhasil       = 0;
+    public int   $balitaBaru     = 0;
     public int   $pengukuranBaru = 0;
 
     public function __construct(
@@ -33,15 +35,18 @@ class BalitaImport
         foreach ($reader->getSheetIterator() as $sheet) {
             foreach ($sheet->getRowIterator() as $row) {
                 $baris++;
-                if ($baris === 1) continue; // skip header
+                
+                // Lewati baris 1 karena merupakan header
+                if ($baris === 1) {
+                    continue; 
+                }
 
                 $cells = $row->toArray();
                 
-                // [PERBAIKAN DI SINI]
-                // Cek apakah data merupakan objek tanggal (DateTimeInterface)
+                // Helper function untuk membaca kolom dengan aman (termasuk konversi tanggal)
                 $col = function($i) use ($cells) {
                     $value = $cells[$i] ?? '';
-                    if ($value instanceof \DateTimeInterface) {
+                    if ($value instanceof DateTimeInterface) {
                         return $value->format('Y-m-d');
                     }
                     return trim((string) $value);
@@ -60,9 +65,12 @@ class BalitaImport
                 $prematur       = in_array($prematurRaw, ['Y', 'YA', '1', 'TRUE']);
                 $usiaGestasi    = $col(10) !== '' ? (int) $col(10) : null;
 
-                if (!$nik && !$nama && !$tglUkurRaw) continue; // baris kosong
+                // Abaikan baris jika benar-benar kosong
+                if (!$nik && !$nama && !$tglUkurRaw) {
+                    continue; 
+                }
 
-                // Validasi wajib
+                // --- 1. Validasi Wajib ---
                 if (!$nik || !$nama || !$tglLahirRaw || !$tglUkurRaw || !$bb || !$tb) {
                     $this->errors[] = "Baris {$baris}: Data tidak lengkap (NIK, Nama, Tgl Lahir, Tgl Ukur, BB, TB wajib diisi).";
                     continue;
@@ -87,24 +95,23 @@ class BalitaImport
                 try {
                     $tglLahir = Carbon::parse($tglLahirRaw)->startOfDay();
                     $tglUkur  = Carbon::parse($tglUkurRaw)->startOfDay();
-                } catch (\Exception) {
+                } catch (Exception) {
                     $this->errors[] = "Baris {$baris}: Format tanggal tidak valid.";
                     continue;
                 }
 
-                // Cari atau buat balita
-                // Cek apakah balita dengan NIK ini sudah ada di database
+                // --- 2. Cari atau Buat Profil Balita ---
+                // (Menggunakan nik_balita sesuai dengan struktur kolom tabel Anda)
                 $balita = Balita::where('nik_balita', $nik)->first();
 
                 if ($balita) {
-                    // JIKA NIK SUDAH ADA: Cek apakah namanya cocok?
-                    // (Pakai strtolower supaya huruf besar/kecil tidak masalah. Misal: "budi" == "Budi")
+                    // Cek konsistensi nama jika NIK sudah ada
                     if (strtolower(trim($balita->nama)) !== strtolower(trim($nama))) {
                         $this->errors[] = "Baris {$baris}: NIK {$nik} sudah terdaftar atas nama '{$balita->nama}', tetapi di file Excel tertulis '{$nama}'. Data dilewati untuk mencegah salah input.";
-                        continue; // Lewati baris ini dan lanjut ke baris Excel berikutnya
+                        continue;
                     }
                 } else {
-                    // JIKA NIK BELUM ADA: Buat profil balita baru
+                    // Buat profil balita baru
                     $balita = Balita::create([
                         'nik_balita'           => $nik,
                         'posyandu_id'          => $this->posyanduId,
@@ -121,7 +128,7 @@ class BalitaImport
                     $this->balitaBaru++;
                 }
 
-                // Cek duplikat pengukuran
+                // --- 3. Validasi Duplikasi Pengukuran ---
                 $sudahAda = Pengukuran::where('balita_id', $balita->id)
                     ->whereDate('tanggal_ukur', $tglUkur)
                     ->exists();
@@ -131,6 +138,7 @@ class BalitaImport
                     continue;
                 }
 
+                // --- 4. Proses Simpan Pengukuran ---
                 $umur = (int) $tglLahir->diffInMonths($tglUkur);
 
                 $p = new Pengukuran([
@@ -142,13 +150,16 @@ class BalitaImport
                     'tinggi_badan_cm' => $tb,
                 ]);
 
+                // Hitung rumus Z-Score dan Status Gizi
                 app(ZScoreCalculator::class)->calculate($p);
+                
+                // Simpan ke database
                 $p->save();
 
                 $this->pengukuranBaru++;
                 $this->berhasil++;
             }
-            break; // hanya sheet pertama
+            break; // Hanya baca sheet pertama
         }
 
         $reader->close();

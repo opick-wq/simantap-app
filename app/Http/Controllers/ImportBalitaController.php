@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Imports\BalitaImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // <-- Tambahkan ini
 use Inertia\Inertia;
 use OpenSpout\Writer\XLSX\Writer;
 use OpenSpout\Common\Entity\Row;
@@ -40,7 +41,9 @@ class ImportBalitaController extends Controller
 
         $file = $request->file('file');
         $path = $file->store('imports/temp');
-        $fullPath = storage_path("app/private/{$path}");
+        
+        // PERBAIKAN: Gunakan Storage::path() agar lebih aman dan dinamis (tidak bergantung pada folder "private")
+        $fullPath = Storage::path($path); 
         $ext  = $file->getClientOriginalExtension();
 
         $importer = new BalitaImport(
@@ -51,9 +54,10 @@ class ImportBalitaController extends Controller
         $importer->import($fullPath, $ext);
 
         // Hapus file temp
-        \Illuminate\Support\Facades\Storage::delete($path);
+        Storage::delete($path);
 
         return back()->with('importResult', [
+            'berhasil'        => $importer->berhasil, // <-- TAMBAHAN: untuk UI Frontend
             'balita_baru'     => $importer->balitaBaru,
             'pengukuran_baru' => $importer->pengukuranBaru,
             'errors'          => $importer->errors,
