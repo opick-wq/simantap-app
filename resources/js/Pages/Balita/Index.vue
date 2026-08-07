@@ -152,8 +152,9 @@
               </td>
               
               <!-- Usia -->
+              <!-- Usia -->
               <td class="px-3 py-2.5 text-center text-xs text-gray-600">
-                {{ b.umur_bulan != null ? b.umur_bulan + ' bln' : b.umur_lengkap }}
+                {{ b.umur_bulan != null ? Math.floor(b.umur_bulan) + ' bln' : b.umur_lengkap }}
               </td>
               
               <!-- BB -->

@@ -146,7 +146,7 @@ class BalitaController extends Controller
                             'nama'           => $b->nama,
                             'jenis_kelamin'  => $b->jenis_kelamin,
                             'umur_lengkap'   => $b->umur_lengkap,
-                            'umur_bulan'     => $b->pengukuran->first()?->umur_bulan,
+                            'umur_bulan'     => $b->pengukuran->first()?->umur_bulan !== null ? (int) $b->pengukuran->first()?->umur_bulan : null,
                             'nama_ibu'       => $b->nama_ibu,
                             'posyandu_nama'  => $b->posyandu->nama,
                             
