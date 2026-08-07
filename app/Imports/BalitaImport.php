@@ -149,7 +149,8 @@ class BalitaImport
                     'berat_badan_kg'  => $bb,
                     'tinggi_badan_cm' => $tb,
                 ]);
-
+                
+                $p->setRelation('balita', $balita);
                 // Hitung rumus Z-Score dan Status Gizi
                 app(ZScoreCalculator::class)->calculate($p);
                 

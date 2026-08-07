@@ -38,6 +38,15 @@ class Pengukuran extends Model
         'validated_at'   => 'datetime',
     ];
 
+    protected $appends = [
+        'warn_ews',
+        'label_status_gizi',
+        'label_stunting',
+        'label_wasting',
+        'label_kbb',
+        'label_imt_u',
+    ];
+
     // ── Booted Method (Otomatisasi Kalkulasi) ─────────────────
     protected static function booted()
     {
