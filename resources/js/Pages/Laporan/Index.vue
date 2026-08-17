@@ -57,23 +57,42 @@
       <!-- Export -->
       <div class="card space-y-3">
         <p class="font-semibold text-gray-700">Export Data</p>
-        <div>
-          <label class="form-label">Pilih Bulan</label>
-          <input v-model="bulan" type="month" class="form-input" :max="maxBulan" />
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <button @click="exportPdf"
-                  class="col-span-2 flex items-center justify-center gap-2 py-2.5 text-sm bg-red-600 text-white rounded-lg font-semibold">
-            📄 Download PDF
-          </button>
-          <button @click="exportCsv" class="btn-primary py-2 text-sm">
-            📥 Download CSV
-          </button>
-          <button @click="exportJson" class="py-2 text-sm border border-blue-600 text-blue-600 rounded-lg font-medium">
-            📥 Download JSON
+        
+        <!-- Bagian PDF (Tetap Per Bulan) -->
+        <div style="padding: 12px; border: 1px solid #fca5a5; border-radius: 8px; margin-bottom: 16px; background-color: #fef2f2;">
+          <label style="display: block; font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #b91c1c;">Laporan Cetak (PDF)</label>
+          <input v-model="bulanPdf" type="month" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px;" :max="maxBulan" />
+          <button @click="exportPdf" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; background-color: #dc2626; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer;">
+            📄 Download PDF (Bulan Ini)
           </button>
         </div>
-        <p class="text-xs text-gray-400">PDF: laporan lengkap siap cetak · CSV: untuk Excel/Spreadsheet</p>
+
+        <!-- Bagian CSV/JSON (Rentang Bulan) -->
+        <div style="padding: 12px; border: 1px solid #93c5fd; border-radius: 8px; background-color: #eff6ff;">
+          <label style="display: block; font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #1d4ed8;">Laporan Sistem & Analisis (Rentang Bulan)</label>
+          
+          <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #333; margin-bottom: 4px; display: block;">Dari Bulan:</label>
+              <input v-model="filter.dari" type="month" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" :max="maxBulan" />
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #333; margin-bottom: 4px; display: block;">Sampai Bulan:</label>
+              <input v-model="filter.sampai" type="month" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" :max="maxBulan" />
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button @click="exportCsv" style="flex: 1; padding: 10px; background-color: #2563eb; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer;">
+              📥 Download CSV
+            </button>
+            <button @click="exportJson" style="flex: 1; padding: 10px; background-color: white; color: #2563eb; border: 1px solid #2563eb; font-weight: bold; border-radius: 6px; cursor: pointer;">
+              📥 Download JSON
+            </button>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-400 mt-2">PDF: laporan lengkap siap cetak · CSV: untuk Excel/Spreadsheet</p>
       </div>
 
       <!-- Info -->
@@ -82,7 +101,7 @@
         <ul class="text-xs text-blue-700 space-y-1 list-disc list-inside">
           <li>Download CSV untuk input ke Excel/Spreadsheet</li>
           <li>Download JSON untuk integrasi sistem eksternal (Puskesmas)</li>
-          <li>Data mencakup semua pengukuran dalam bulan yang dipilih</li>
+          <li>Data mencakup semua pengukuran dalam rentang yang dipilih</li>
           <li>Z-score dihitung menggunakan standar WHO 2006</li>
         </ul>
       </div>
@@ -98,18 +117,32 @@ import AppLayout from '@/Components/UI/AppLayout.vue'
 const props = defineProps({ ringkasan: Object })
 
 const now     = new Date()
-const bulan   = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
-const maxBulan = bulan.value
+const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+const maxBulan = currentMonth
+const bulanPdf = ref(currentMonth)
+
+// State khusus untuk rentang bulan CSV & JSON
+const filter = ref({
+  dari: currentMonth,
+  sampai: currentMonth
+})
 
 function exportPdf() {
-  window.location.href = route('laporan.pdf') + '?' + new URLSearchParams({ bulan: bulan.value })
+  window.location.href = route('laporan.pdf') + '?' + new URLSearchParams({ bulan: bulanPdf.value })
 }
 
 function exportCsv() {
-  window.location.href = route('laporan.excel') + '?' + new URLSearchParams({ bulan: bulan.value })
+  window.location.href = route('laporan.excel') + '?' + new URLSearchParams({ 
+    dari: filter.value.dari, 
+    sampai: filter.value.sampai 
+  })
 }
 
 function exportJson() {
-  window.location.href = route('laporan.json') + '?' + new URLSearchParams({ bulan: bulan.value })
+  window.location.href = route('laporan.json') + '?' + new URLSearchParams({ 
+    dari: filter.value.dari, 
+    sampai: filter.value.sampai 
+  })
 }
 </script>

@@ -194,18 +194,24 @@ class EwsEngine
 
         if (!$terakhir) return [];
 
-        $bulanAbsen = (int) \Carbon\Carbon::parse($terakhir)->diffInMonths(now());
+        // Menghitung selisih menggunakan hari aktual[cite: 1]
+        $hariAbsen = (int) \Carbon\Carbon::parse($terakhir)->diffInDays(now());
+        
+        // Membulatkan hari ke bulan untuk teks pesan (misal: 95 hari = 3 bulan)
+        $bulanHitungan = floor($hariAbsen / 30);
 
-        if ($bulanAbsen >= 3) {
+        // Jika tidak hadir lebih dari atau sama dengan 90 hari (3 bulan)[cite: 1]
+        if ($hariAbsen >= 90) {
             $dummy = new Pengukuran(['balita_id' => $balita->id]);
             return [$this->buat($dummy, 'ABSEN_LAMA', 'MERAH',
-                "Tidak hadir {$bulanAbsen} bulan — kunjungan rumah diperlukan")];
+                "Tidak hadir {$bulanHitungan} bulan — kunjungan rumah diperlukan")];
         }
 
-        if ($bulanAbsen >= 2) {
+        // Jika tidak hadir lebih dari atau sama dengan 60 hari (2 bulan)[cite: 1]
+        if ($hariAbsen >= 60) {
             $dummy = new Pengukuran(['balita_id' => $balita->id]);
             return [$this->buat($dummy, 'ABSEN_2BULAN', 'KUNING',
-                "Tidak hadir {$bulanAbsen} bulan — ingatkan untuk hadir")];
+                "Tidak hadir {$bulanHitungan} bulan — ingatkan untuk hadir")];
         }
 
         return [];

@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use Carbon\Carbon;
 
 class LaporanController extends Controller
 {
@@ -43,15 +44,18 @@ class LaporanController extends Controller
 
     public function exportJson(Request $request)
     {
-        $ids  = Auth::user()->accessiblePosyanduIds();
-        $bulan = $request->input('bulan', now()->format('Y-m'));
+        $ids = Auth::user()->accessiblePosyanduIds();
+        
+        // FITUR BARU: Menggunakan rentang dari dan sampai[cite: 1]
+        $dari = $request->input('dari', now()->startOfMonth()->format('Y-m'));
+        $sampai = $request->input('sampai', now()->endOfMonth()->format('Y-m'));
 
-        [$year, $month] = explode('-', $bulan);
+        $tanggalMulai = $dari . '-01';
+        $tanggalSelesai = Carbon::parse($sampai . '-01')->endOfMonth()->format('Y-m-d');
 
         $data = Pengukuran::with(['balita.posyandu'])
             ->whereHas('balita', fn($q) => $q->whereIn('posyandu_id', $ids))
-            ->whereYear('tanggal_ukur', $year)
-            ->whereMonth('tanggal_ukur', $month)
+            ->whereBetween('tanggal_ukur', [$tanggalMulai, $tanggalSelesai]) // Menggunakan whereBetween[cite: 1]
             ->get()
             ->map(fn($p) => [
                 'nama_balita'    => $p->balita->nama,
@@ -68,12 +72,14 @@ class LaporanController extends Controller
                 'flag_ews'       => $p->flag_ews,
             ]);
 
+        // FITUR BARU: Nama file otomatis sesuai rentang[cite: 1]
         return response()->json($data)
-            ->header('Content-Disposition', "attachment; filename=laporan-{$bulan}.json");
+            ->header('Content-Disposition', "attachment; filename=laporan-{$dari}_sd_{$sampai}.json");
     }
 
     public function exportPdf(Request $request)
     {
+        // PDF tetap dibiarkan per bulan[cite: 1]
         $ids   = Auth::user()->accessiblePosyanduIds();
         $bulan = $request->input('bulan', now()->format('Y-m'));
         [$year, $month] = explode('-', $bulan);
@@ -191,14 +197,18 @@ class LaporanController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $ids   = Auth::user()->accessiblePosyanduIds();
-        $bulan = $request->input('bulan', now()->format('Y-m'));
-        [$year, $month] = explode('-', $bulan);
+        $ids = Auth::user()->accessiblePosyanduIds();
+        
+        // FITUR BARU: Menggunakan rentang dari dan sampai[cite: 1]
+        $dari = $request->input('dari', now()->startOfMonth()->format('Y-m'));
+        $sampai = $request->input('sampai', now()->endOfMonth()->format('Y-m'));
+
+        $tanggalMulai = $dari . '-01';
+        $tanggalSelesai = Carbon::parse($sampai . '-01')->endOfMonth()->format('Y-m-d');
 
         $data = Pengukuran::with(['balita.posyandu'])
             ->whereHas('balita', fn($q) => $q->whereIn('posyandu_id', $ids)->where('aktif', true))
-            ->whereYear('tanggal_ukur', $year)
-            ->whereMonth('tanggal_ukur', $month)
+            ->whereBetween('tanggal_ukur', [$tanggalMulai, $tanggalSelesai]) // Menggunakan whereBetween[cite: 1]
             ->get();
 
         $csv = "No,NIK Balita,Nama Balita,Nama Ibu,Jenis Kelamin,Umur (bln),Posyandu,Tanggal Ukur,BB (kg),TB (cm),Status Gizi,Status Stunting,Flag EWS\n";
@@ -222,9 +232,10 @@ class LaporanController extends Controller
             ]) . "\n";
         }
 
+        // FITUR BARU: Nama file otomatis sesuai rentang[cite: 1]
         return response($csv, 200, [
             'Content-Type'        => 'text/csv',
-            'Content-Disposition' => "attachment; filename=laporan-{$bulan}.csv",
+            'Content-Disposition' => "attachment; filename=laporan-{$dari}_sd_{$sampai}.csv",
         ]);
     }
 

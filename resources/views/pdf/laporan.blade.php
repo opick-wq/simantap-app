@@ -227,14 +227,14 @@
     <tr>
       <td>EWS Merah — Risiko Tinggi (belum ditangani)</td>
       <td class="num c-red">{{ $ringkasan['ews_merah'] }}</td>
-      <td class="pct c-red">{{ $pct($ringkasan['ews_merah']) }}%</td>
-      <td class="bar-wrap"><div class="bar-bg"><div class="bar-fill f-red" style="width:{{ $pct($ringkasan['ews_merah']) }}%"></div></div></td>
+      <td class="pct c-red">{{ $pct($ringkasan['ews_merah'], $total) }}%</td>
+      <td class="bar-wrap"><div class="bar-bg"><div class="bar-fill f-red" style="width:{{ $pct($ringkasan['ews_merah'], $total) }}%"></div></div></td>
     </tr>
     <tr>
       <td>EWS Kuning — Perlu Perhatian (belum ditangani)</td>
       <td class="num c-yellow">{{ $ringkasan['ews_kuning'] }}</td>
-      <td class="pct c-yellow">{{ $pct($ringkasan['ews_kuning']) }}%</td>
-      <td class="bar-wrap"><div class="bar-bg"><div class="bar-fill f-yellow" style="width:{{ $pct($ringkasan['ews_kuning']) }}%"></div></div></td>
+      <td class="pct c-yellow">{{ $pct($ringkasan['ews_kuning'], $total) }}%</td>
+      <td class="bar-wrap"><div class="bar-bg"><div class="bar-fill f-yellow" style="width:{{ $pct($ringkasan['ews_kuning'], $total) }}%"></div></div></td>
     </tr>
   </table>
 </div>

@@ -23,6 +23,15 @@ class EwsController extends Controller
         $query = Peringatan::with(['balita.posyandu', 'pengukuran'])
             ->whereHas('balita', fn($q) => $q->whereIn('posyandu_id', $filterPosyandu));
 
+        // FITUR BARU: Filter Kategori (Kehadiran vs Gizi/Stunting)[cite: 1]
+        if ($request->filled('kategori') && $request->kategori !== 'semua') {
+            if ($request->kategori === 'kehadiran') {
+                $query->whereIn('jenis_peringatan', ['ABSEN_LAMA', 'ABSEN_2BULAN']);
+            } elseif ($request->kategori === 'gizi') {
+                $query->whereNotIn('jenis_peringatan', ['ABSEN_LAMA', 'ABSEN_2BULAN']);
+            }
+        }
+
         if ($request->filled('level')) {
             $query->where('level_risiko', strtoupper($request->level));
         }
@@ -63,6 +72,8 @@ class EwsController extends Controller
                 'id'                   => $p->id,
                 'level_risiko'         => $p->level_risiko,
                 'jenis_peringatan'     => $p->label_jenis,
+                // Mengirimkan jenis_peringatan asli agar Vue bisa mendeteksi isKehadiran
+                'jenis_peringatan_raw' => $p->jenis_peringatan, 
                 'pesan'                => $p->pesan,
                 'status_tindak_lanjut' => $p->status_tindak_lanjut,
                 'belum_diteruskan'     => $p->status_tindak_lanjut === 'BELUM',
@@ -70,7 +81,7 @@ class EwsController extends Controller
                 'created_at_human'     => $p->created_at->diffForHumans(),
                 'bulan_label'          => ['', 'Januari','Februari','Maret','April','Mei','Juni',
                                             'Juli','Agustus','September','Oktober','November','Desember']
-                                           [(int) $p->created_at->format('n')] . ' ' . $p->created_at->format('Y'),
+                                            [(int) $p->created_at->format('n')] . ' ' . $p->created_at->format('Y'),
                 'is_menunggak'         => $p->created_at->format('Y-m') !== now()->format('Y-m'),
                 'balita_nama'          => $p->balita->nama,
                 'balita_id'            => $p->balita_id,
@@ -82,16 +93,16 @@ class EwsController extends Controller
 
         $ringkasan = [
             'total_merah'      => Peringatan::whereHas('balita', fn($q) => $q->whereIn('posyandu_id', $ids))
-                                    ->where('level_risiko', 'MERAH')
-                                    ->whereIn('status_tindak_lanjut', ['BELUM','DILAPORKAN','DALAM_PROSES'])
-                                    ->count(),
+                                        ->where('level_risiko', 'MERAH')
+                                        ->whereIn('status_tindak_lanjut', ['BELUM','DILAPORKAN','DALAM_PROSES'])
+                                        ->count(),
             'total_kuning'     => Peringatan::whereHas('balita', fn($q) => $q->whereIn('posyandu_id', $ids))
-                                    ->where('level_risiko', 'KUNING')
-                                    ->whereIn('status_tindak_lanjut', ['BELUM','DILAPORKAN','DALAM_PROSES'])
-                                    ->count(),
+                                        ->where('level_risiko', 'KUNING')
+                                        ->whereIn('status_tindak_lanjut', ['BELUM','DILAPORKAN','DALAM_PROSES'])
+                                        ->count(),
             'menunggu_nakes'   => Peringatan::whereHas('balita', fn($q) => $q->whereIn('posyandu_id', $ids))
-                                    ->where('status_tindak_lanjut', 'DILAPORKAN')
-                                    ->count(),
+                                        ->where('status_tindak_lanjut', 'DILAPORKAN')
+                                        ->count(),
         ];
 
         $posyandu = \App\Models\Posyandu::whereIn('id', $ids)->orderBy('nama')->get(['id', 'nama']);
@@ -104,6 +115,7 @@ class EwsController extends Controller
                 'posyandu_id' => $request->posyandu_id,
                 'level'       => $request->level,
                 'status'      => $request->status,
+                'kategori'    => $request->kategori, // Meneruskan filter kategori ke Vue
             ],
             'roleUser' => $user->role,
         ]);
@@ -143,7 +155,7 @@ class EwsController extends Controller
                     ? \App\Models\User::find($p->diverifikasi_oleh)?->nama
                     : null,
                 'pelapor_nama'              => $p->pelapor?->nama,
-                'pengukuran_is_validated'   => (bool) $p->pengukuran->is_validated,
+                'pengukuran_is_validated'   => (bool)($p->pengukuran?->is_validated ?? false),
             ]),
             'riwayatTindakan' => $riwayatTindakan,
             'roleUser'        => $user->role,
