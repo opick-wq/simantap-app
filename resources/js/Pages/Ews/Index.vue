@@ -192,18 +192,13 @@ function isKehadiran(p) {
 
 // Fungsi Trigger untuk memanggil Modal Lapor Nakes
 function bukaModalLapor(id) {
-  // Hubungkan ke state/modal pelaporan yang kamu miliki
-  console.log('Membuka modal lapor nakes untuk ID:', id);
-  // Contoh: showModalLapor.value = true;
-  // selectedId.value = id;
+  // Langsung arahkan ke halaman detail peringatan
+  router.get(route('peringatan.show', id));
 }
 
-// Fungsi Trigger untuk memanggil Modal Tindak Lanjut[cite: 1]
 function bukaModalTindakLanjut(id) {
-  // Hubungkan ke state/modal penanganan yang kamu miliki
-  console.log('Membuka modal tandai ditangani untuk ID:', id);
-  // Contoh: showModalTindakLanjut.value = true;
-  // selectedId.value = id;
+  // Langsung arahkan ke halaman detail peringatan
+  router.get(route('peringatan.show', id));
 }
 
 function jenisMeta(jenis) {

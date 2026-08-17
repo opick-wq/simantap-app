@@ -208,33 +208,25 @@
   </table>
 </div>
 
-<!-- Double Burden & EWS -->
+<!-- Double Burden & EWS (DIPERBARUI: Kolom % dan Proporsi dihapus) -->
 <div class="section">
   <div class="section-title">4. Double Burden &amp; Early Warning System (EWS)</div>
   <table class="ring-table">
     <tr>
-      <th style="width:40%">Indikator</th>
-      <th style="width:12%">Jumlah</th>
-      <th style="width:14%">% dari Diukur</th>
-      <th style="width:34%">Proporsi</th>
+      <th style="width:85%">Indikator</th>
+      <th style="width:15%; text-align:right; padding-right:20px;">Jumlah</th>
     </tr>
     <tr>
       <td>Double Burden <span style="font-size:11px;color:#6b7280">(Wasting BB/TB &lt; -2 SD + Stunting TB/U &lt; -2 SD)</span></td>
-      <td class="num c-red">{{ $ringkasan['double_burden'] }}</td>
-      <td class="pct c-red">{{ $pct($ringkasan['double_burden']) }}%</td>
-      <td class="bar-wrap"><div class="bar-bg"><div class="bar-fill f-red" style="width:{{ $pct($ringkasan['double_burden']) }}%"></div></div></td>
+      <td class="num c-red" style="padding-right:20px;">{{ $ringkasan['double_burden'] }}</td>
     </tr>
     <tr>
       <td>EWS Merah — Risiko Tinggi (belum ditangani)</td>
-      <td class="num c-red">{{ $ringkasan['ews_merah'] }}</td>
-      <td class="pct c-red">{{ $pct($ringkasan['ews_merah'], $total) }}%</td>
-      <td class="bar-wrap"><div class="bar-bg"><div class="bar-fill f-red" style="width:{{ $pct($ringkasan['ews_merah'], $total) }}%"></div></div></td>
+      <td class="num c-red" style="padding-right:20px;">{{ $ringkasan['ews_merah'] }}</td>
     </tr>
     <tr>
       <td>EWS Kuning — Perlu Perhatian (belum ditangani)</td>
-      <td class="num c-yellow">{{ $ringkasan['ews_kuning'] }}</td>
-      <td class="pct c-yellow">{{ $pct($ringkasan['ews_kuning'], $total) }}%</td>
-      <td class="bar-wrap"><div class="bar-bg"><div class="bar-fill f-yellow" style="width:{{ $pct($ringkasan['ews_kuning'], $total) }}%"></div></div></td>
+      <td class="num" style="color: #d97706; padding-right:20px;">{{ $ringkasan['ews_kuning'] }}</td>
     </tr>
   </table>
 </div>
